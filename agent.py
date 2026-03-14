@@ -2,6 +2,7 @@ from gmail_service import get_new_emails, send_reply
 from ai_processor import generate_reply
 from sheets_service import save_lead
 from datetime import datetime
+import time
 
 
 def main():
@@ -40,4 +41,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+
+    while True:
+        main()
+
+        print("Waiting 5 minutes before checking again...")
+        time.sleep(300)
