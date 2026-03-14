@@ -14,7 +14,7 @@ def generate_reply(email_text):
     Write a professional reply for a business.
     """
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-1.5-flash",
         contents=prompt
     )
     return response.text
