@@ -145,13 +145,13 @@ def get_new_emails():
         })
 
         # mark email as read
-        service.users().messages().modify(
+       # service.users().messages().modify(
 
-            userId="me",
-            id=msg["id"],
-            body={"removeLabelIds": ["UNREAD"]}
+           # userId="me",
+           # id=msg["id"],
+           # body={"removeLabelIds": ["UNREAD"]}
 
-        ).execute()
+       # ).execute()
 
     return emails
 
