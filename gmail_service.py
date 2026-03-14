@@ -1,5 +1,6 @@
 import base64
 import os
+import json
 from email import message_from_bytes
 from email.mime.text import MIMEText
 
@@ -15,7 +16,21 @@ SCOPES = [
 ]
 
 
+# Create credentials.json from Railway environment variable
+def create_credentials_file():
+
+    creds_json = os.getenv("GOOGLE_CREDENTIALS")
+
+    if creds_json and not os.path.exists("credentials.json"):
+
+        with open("credentials.json", "w") as f:
+            f.write(creds_json)
+
+
 def authenticate_gmail():
+
+    create_credentials_file()
+
     creds = None
 
     # Load saved token
@@ -24,9 +39,11 @@ def authenticate_gmail():
 
     # First-time authentication
     if not creds:
+
         flow = InstalledAppFlow.from_client_secrets_file(
             "credentials.json", SCOPES
         )
+
         creds = flow.run_local_server(port=0)
 
         with open("token.json", "w") as token:
@@ -37,6 +54,7 @@ def authenticate_gmail():
 
 
 def get_new_emails():
+
     service = authenticate_gmail()
 
     results = service.users().messages().list(
