@@ -1,4 +1,7 @@
 credentials.json
 sheets-agent.json
 .env
-__pycache__/
+__pycache__/token.json 
+credentials.json 
+token.json 
+__pycache__/ 
