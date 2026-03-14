@@ -1,0 +1,27 @@
+from openai import OpenAI
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+def generate_reply(email_text):
+
+    prompt = f"""
+    A customer sent this email.
+
+    Email:
+    {email_text}
+
+    Write a professional reply for a business.
+    """
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role":"user","content":prompt}
+        ]
+    )
+
+    return response.choices[0].message.content

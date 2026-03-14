@@ -1,0 +1,4 @@
+credentials.json
+sheets-agent.json
+.env
+__pycache__/
