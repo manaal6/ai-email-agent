@@ -3,11 +3,9 @@ import os
 import json
 from email import message_from_bytes
 from email.mime.text import MIMEText
-
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
-
 
 # Permissions
 SCOPES = [
@@ -15,21 +13,23 @@ SCOPES = [
     "https://www.googleapis.com/auth/gmail.send"
 ]
 
-
-# Create credentials.json from Railway environment variable
 def create_credentials_file():
-
+    """Write credentials.json from GOOGLE_CREDENTIALS env var if not present."""
     creds_json = os.getenv("GOOGLE_CREDENTIALS")
-
     if creds_json and not os.path.exists("credentials.json"):
-
         with open("credentials.json", "w") as f:
             f.write(creds_json)
 
+def create_token_file():
+    """Write token.json from GMAIL_TOKEN env var if not present."""
+    token_json = os.getenv("GMAIL_TOKEN")
+    if token_json and not os.path.exists("token.json"):
+        with open("token.json", "w") as f:
+            f.write(token_json)
 
 def authenticate_gmail():
-
     create_credentials_file()
+    create_token_file()
 
     creds = None
 
@@ -37,24 +37,26 @@ def authenticate_gmail():
     if os.path.exists("token.json"):
         creds = Credentials.from_authorized_user_file("token.json", SCOPES)
 
-    # First-time authentication
-    if not creds:
+    # Refresh if expired
+    if creds and creds.expired and creds.refresh_token:
+        try:
+            creds.refresh(Request())
+            with open("token.json", "w") as token:
+                token.write(creds.to_json())
+        except Exception as e:
+            raise RuntimeError(f"Failed to refresh token: {e}. Re-generate token.json locally.")
 
-        flow = InstalledAppFlow.from_client_secrets_file(
-            "credentials.json", SCOPES
+    # No valid creds at all — fail loudly
+    if not creds or not creds.valid:
+        raise RuntimeError(
+            "No valid Gmail credentials found. "
+            "Generate token.json locally and set GMAIL_TOKEN env var on Railway."
         )
 
-        creds = flow.run_local_server(port=0)
-
-        with open("token.json", "w") as token:
-            token.write(creds.to_json())
-
-    service = build("gmail", "v1", credentials=creds)
-    return service
+    return build("gmail", "v1", credentials=creds)
 
 
 def get_new_emails():
-
     service = authenticate_gmail()
 
     results = service.users().messages().list(
@@ -67,7 +69,6 @@ def get_new_emails():
     emails = []
 
     for msg in messages:
-
         msg_data = service.users().messages().get(
             userId="me",
             id=msg["id"],
@@ -79,23 +80,24 @@ def get_new_emails():
 
         sender = email_msg["From"]
         subject = email_msg["Subject"]
-
         body = ""
 
         if email_msg.is_multipart():
             for part in email_msg.walk():
                 if part.get_content_type() == "text/plain":
                     body = part.get_payload(decode=True).decode(errors="ignore")
+                    break
         else:
             body = email_msg.get_payload(decode=True).decode(errors="ignore")
 
         emails.append({
+            "id": msg["id"],
             "sender": sender,
             "subject": subject,
             "body": body
         })
 
-        # mark email as read
+        # Mark as read
         service.users().messages().modify(
             userId="me",
             id=msg["id"],
@@ -106,11 +108,9 @@ def get_new_emails():
 
 
 def send_reply(to_email, subject, message):
-
     service = authenticate_gmail()
 
     email_message = MIMEText(message)
-
     email_message["to"] = to_email
     email_message["subject"] = "Re: " + subject
 
@@ -118,13 +118,9 @@ def send_reply(to_email, subject, message):
         email_message.as_bytes()
     ).decode()
 
-    message_body = {
-        "raw": raw_message
-    }
-
     service.users().messages().send(
         userId="me",
-        body=message_body
+        body={"raw": raw_message}
     ).execute()
 
     print("Reply sent to:", to_email)
