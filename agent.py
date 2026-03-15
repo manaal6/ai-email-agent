@@ -1,5 +1,5 @@
 from gmail_service import get_new_emails, send_reply, authenticate_gmail
-from ai_processor import generate_reply
+from ai_processor import generate_reply, extract_sender_name
 from sheets_service import save_lead
 
 import time
@@ -69,8 +69,6 @@ def main():
    
     print("Checking for new emails...")
 
-    print("Checking for new emails...")
-
     emails = get_new_emails()
 
     if not emails:
@@ -112,9 +110,10 @@ def main():
 
             print("Reply sent successfully")
 
-            # Save lead
+            # Save lead (extract name from email body via AI)
+            sender_name = extract_sender_name(body, sender_raw)
             save_lead(
-                "Unknown",
+                sender_name,
                 sender,
                 body,
                 datetime.now().strftime("%Y-%m-%d")
