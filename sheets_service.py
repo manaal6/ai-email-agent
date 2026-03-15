@@ -1,22 +1,28 @@
 import os
 import gspread
 from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
 
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.modify",
     "https://www.googleapis.com/auth/gmail.send",
-    "https://www.googleapis.com/auth/spreadsheets",  # no drive scope
+    "https://www.googleapis.com/auth/spreadsheets",
 ]
 
 
 def get_sheet():
-    creds = Credentials.from_authorized_user_file(
-        "token.json",
-        SCOPES
-    )
-    print("Token scopes:", creds.scopes)  # add this line
-    client = gspread.authorize(creds)
+
+    creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+
+    # Refresh if expired
+    if creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+
+    client = gspread.Client(auth=creds)
+    client.session.headers.update({"Authorization": f"Bearer {creds.token}"})
+
     sheet = client.open("AI Leads").sheet1
+
     return sheet
 
 
@@ -26,12 +32,7 @@ def save_lead(name, email, request, date):
 
         sheet = get_sheet()
 
-        sheet.append_row([
-            name,
-            email,
-            request,
-            date
-        ])
+        sheet.append_row([name, email, request, date])
 
         print("Lead saved to Google Sheets")
 
