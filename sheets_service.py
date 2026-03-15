@@ -12,8 +12,9 @@ SCOPES = [
 def get_sheet():
     creds = Credentials.from_authorized_user_file(
         "token.json",
-        SCOPES  # same scopes as gmail_service.py + sheets
+        SCOPES
     )
+    print("Token scopes:", creds.scopes)  # add this line
     client = gspread.authorize(creds)
     sheet = client.open("AI Leads").sheet1
     return sheet
