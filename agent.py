@@ -143,4 +143,4 @@ if __name__ == "__main__":
 
         print("Waiting 5 minutes before checking again...")
 
-        time.sleep(300)
+        time.sleep(60)
