@@ -116,7 +116,7 @@ def main():
                 sender_name,
                 sender,
                 body,
-                datetime.now().strftime("%Y-%m-%d")
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             )
 
             print("Lead saved to Google Sheets")
