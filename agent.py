@@ -7,12 +7,6 @@ import urllib.request
 from datetime import datetime
 import re
 
-def test_network():
-    try:
-        urllib.request.urlopen("https://www.google.com", timeout=10)
-        print("Network OK - can reach Google")
-    except Exception as e:
-        print("Network FAILED:", e)
 
 def extract_email(sender):
     """
@@ -72,7 +66,7 @@ def already_replied(service, message_id):
 
 def main():
 
-    test_network()  # add this
+   
     print("Checking for new emails...")
 
     print("Checking for new emails...")
