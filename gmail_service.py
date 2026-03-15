@@ -23,7 +23,7 @@ def create_credentials_file():
 
     creds_json = os.getenv("GOOGLE_CREDENTIALS")
 
-    if creds_json and not os.path.exists("credentials.json"):
+    if creds_json:
 
         with open("credentials.json", "w") as f:
             f.write(creds_json)
@@ -36,11 +36,12 @@ def create_token_file():
 
     token_json = os.getenv("GMAIL_TOKEN")
 
-    if token_json and not os.path.exists("token.json"):
+    if token_json:
 
         with open("token.json", "w") as f:
             f.write(token_json)
 
+        print("Token file written from env variable")
 
 # -----------------------------
 # Authenticate Gmail
