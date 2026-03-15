@@ -11,17 +11,11 @@ SCOPES = [
 
 
 def get_sheet():
-
     creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-
-    # Refresh if expired
     if creds.expired and creds.refresh_token:
         creds.refresh(Request())
-
-    client = gspread.authorize(creds)  
-
-    sheet = client.open("AI Leads").sheet1
-
+    client = gspread.authorize(creds)
+    sheet = client.open_by_key("1Ge2AG1piFHXbiA6_LAwK2zkEmUkJavoJ8az9i9c7qPc").sheet1
     return sheet
 
 
