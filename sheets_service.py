@@ -3,22 +3,19 @@ import gspread
 from google.oauth2.credentials import Credentials
 
 SCOPES = [
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive"
+    "https://www.googleapis.com/auth/gmail.modify",
+    "https://www.googleapis.com/auth/gmail.send",
+    "https://www.googleapis.com/auth/spreadsheets",  # no drive scope
 ]
 
 
 def get_sheet():
-
     creds = Credentials.from_authorized_user_file(
         "token.json",
-        SCOPES
+        SCOPES  # same scopes as gmail_service.py + sheets
     )
-
     client = gspread.authorize(creds)
-
     sheet = client.open("AI Leads").sheet1
-
     return sheet
 
 
