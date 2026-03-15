@@ -1,12 +1,10 @@
 import os
+from groq import Groq
 from dotenv import load_dotenv
-from google import genai
 
 load_dotenv()
 
-client = genai.Client(
-    api_key=os.getenv("GEMINI_API_KEY")
-)
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def generate_reply(email_text):
 
@@ -15,12 +13,15 @@ A customer sent this email:
 
 {email_text}
 
-Write a short professional business reply.
+Write a short professional reply from a business.
 """
 
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=prompt
+    response = client.chat.completions.create(
+        messages=[
+            {"role": "system", "content": "You are a professional customer support assistant."},
+            {"role": "user", "content": prompt}
+        ],
+        model="llama3-8b-8192"
     )
 
-    return response.text
+    return response.choices[0].message.content
