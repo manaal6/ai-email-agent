@@ -1,8 +1,9 @@
 import base64
 import os
-import json
+import time
 from email import message_from_bytes
 from email.mime.text import MIMEText
+
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
@@ -51,25 +52,33 @@ def authenticate_gmail():
     creds = None
 
     if os.path.exists("token.json"):
-
         creds = Credentials.from_authorized_user_file(
             "token.json",
             SCOPES
         )
 
-    # refresh expired token
+    # Refresh token safely
     if creds and creds.expired and creds.refresh_token:
 
-        creds.refresh(Request())
+        for attempt in range(3):
 
-        with open("token.json", "w") as token:
-            token.write(creds.to_json())
+            try:
+                creds.refresh(Request())
+
+                with open("token.json", "w") as token:
+                    token.write(creds.to_json())
+
+                break
+
+            except Exception as e:
+
+                print("Token refresh failed. Retrying...", e)
+                time.sleep(10)
 
     if not creds or not creds.valid:
 
         raise RuntimeError(
-            "Invalid Gmail credentials. "
-            "Generate token.json locally and upload to Railway env variable."
+            "Invalid Gmail credentials. Generate token.json locally."
         )
 
     service = build(
@@ -100,58 +109,55 @@ def get_new_emails():
 
     for msg in messages:
 
-        msg_data = service.users().messages().get(
-            userId="me",
-            id=msg["id"],
-            format="raw"
-        ).execute()
+        try:
 
-        raw_msg = base64.urlsafe_b64decode(
-            msg_data["raw"]
-        )
+            msg_data = service.users().messages().get(
+                userId="me",
+                id=msg["id"],
+                format="raw"
+            ).execute()
 
-        email_msg = message_from_bytes(raw_msg)
+            raw_msg = base64.urlsafe_b64decode(
+                msg_data["raw"]
+            )
 
-        sender = email_msg["From"]
-        subject = email_msg["Subject"]
+            email_msg = message_from_bytes(raw_msg)
 
-        body = ""
+            sender = email_msg.get("From", "")
+            subject = email_msg.get("Subject", "")
 
-        if email_msg.is_multipart():
+            body = ""
 
-            for part in email_msg.walk():
+            if email_msg.is_multipart():
 
-                if part.get_content_type() == "text/plain":
+                for part in email_msg.walk():
 
-                    body = part.get_payload(
-                        decode=True
-                    ).decode(errors="ignore")
+                    if part.get_content_type() == "text/plain":
 
-                    break
+                        body = part.get_payload(
+                            decode=True
+                        ).decode(errors="ignore")
 
-        else:
+                        break
 
-            body = email_msg.get_payload(
-                decode=True
-            ).decode(errors="ignore")
+            else:
 
-        emails.append({
+                body = email_msg.get_payload(
+                    decode=True
+                ).decode(errors="ignore")
 
-            "id": msg["id"],
-            "sender": sender,
-            "subject": subject,
-            "body": body
+            emails.append({
 
-        })
+                "id": msg["id"],
+                "sender": sender,
+                "subject": subject,
+                "body": body
 
-        # mark email as read
-       # service.users().messages().modify(
+            })
 
-           # userId="me",
-           # id=msg["id"],
-           # body={"removeLabelIds": ["UNREAD"]}
+        except Exception as e:
 
-       # ).execute()
+            print("Error reading email:", e)
 
     return emails
 
@@ -163,22 +169,24 @@ def send_reply(to_email, subject, message):
 
     service = authenticate_gmail()
 
-    email_message = MIMEText(message)
+    try:
 
-    email_message["to"] = to_email
-    email_message["subject"] = "Re: " + subject
+        email_message = MIMEText(message)
 
-    raw_message = base64.urlsafe_b64encode(
+        email_message["to"] = to_email
+        email_message["subject"] = "Re: " + subject
 
-        email_message.as_bytes()
+        raw_message = base64.urlsafe_b64encode(
+            email_message.as_bytes()
+        ).decode()
 
-    ).decode()
+        service.users().messages().send(
+            userId="me",
+            body={"raw": raw_message}
+        ).execute()
 
-    service.users().messages().send(
+        print("Reply sent to:", to_email)
 
-        userId="me",
-        body={"raw": raw_message}
+    except Exception as e:
 
-    ).execute()
-
-    print("Reply sent to:", to_email)
+        print("Failed to send reply:", e)
