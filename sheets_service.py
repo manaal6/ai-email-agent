@@ -18,8 +18,7 @@ def get_sheet():
     if creds.expired and creds.refresh_token:
         creds.refresh(Request())
 
-    client = gspread.Client(auth=creds)
-    client.session.headers.update({"Authorization": f"Bearer {creds.token}"})
+    client = gspread.authorize(creds)  
 
     sheet = client.open("AI Leads").sheet1
 
@@ -31,11 +30,8 @@ def save_lead(name, email, request, date):
     try:
 
         sheet = get_sheet()
-
         sheet.append_row([name, email, request, date])
-
         print("Lead saved to Google Sheets")
 
     except Exception as e:
-
         print("Error saving lead:", e)
