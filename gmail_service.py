@@ -52,34 +52,46 @@ def authenticate_gmail():
     creds = None
 
     if os.path.exists("token.json"):
+
         creds = Credentials.from_authorized_user_file(
             "token.json",
             SCOPES
         )
 
-    # Refresh token safely
+    # refresh token safely
     if creds and creds.expired and creds.refresh_token:
 
-        for attempt in range(3):
+        success = False
+
+        for attempt in range(5):
 
             try:
+
+                print("Refreshing Gmail token...")
+
                 creds.refresh(Request())
 
                 with open("token.json", "w") as token:
                     token.write(creds.to_json())
 
+                success = True
                 break
 
             except Exception as e:
 
-                print("Token refresh failed. Retrying...", e)
-                time.sleep(10)
+                print("Token refresh failed:", e)
+                print("Retrying in 20 seconds...")
+                time.sleep(20)
+
+        if not success:
+
+            print("Token refresh failed after retries.")
+            return None
 
     if not creds or not creds.valid:
 
-        raise RuntimeError(
-            "Invalid Gmail credentials. Generate token.json locally."
-        )
+        print("Invalid Gmail credentials.")
+        return None
 
     service = build(
         "gmail",
@@ -97,69 +109,79 @@ def get_new_emails():
 
     service = authenticate_gmail()
 
-    results = service.users().messages().list(
-        userId="me",
-        labelIds=["INBOX"],
-        q="is:unread"
-    ).execute()
+    if service is None:
+        return []
 
-    messages = results.get("messages", [])
+    try:
 
-    emails = []
+        results = service.users().messages().list(
+            userId="me",
+            labelIds=["INBOX"],
+            q="is:unread"
+        ).execute()
 
-    for msg in messages:
+        messages = results.get("messages", [])
 
-        try:
+        emails = []
 
-            msg_data = service.users().messages().get(
-                userId="me",
-                id=msg["id"],
-                format="raw"
-            ).execute()
+        for msg in messages:
 
-            raw_msg = base64.urlsafe_b64decode(
-                msg_data["raw"]
-            )
+            try:
 
-            email_msg = message_from_bytes(raw_msg)
+                msg_data = service.users().messages().get(
+                    userId="me",
+                    id=msg["id"],
+                    format="raw"
+                ).execute()
 
-            sender = email_msg.get("From", "")
-            subject = email_msg.get("Subject", "")
+                raw_msg = base64.urlsafe_b64decode(
+                    msg_data["raw"]
+                )
 
-            body = ""
+                email_msg = message_from_bytes(raw_msg)
 
-            if email_msg.is_multipart():
+                sender = email_msg.get("From", "")
+                subject = email_msg.get("Subject", "")
 
-                for part in email_msg.walk():
+                body = ""
 
-                    if part.get_content_type() == "text/plain":
+                if email_msg.is_multipart():
 
-                        body = part.get_payload(
-                            decode=True
-                        ).decode(errors="ignore")
+                    for part in email_msg.walk():
 
-                        break
+                        if part.get_content_type() == "text/plain":
 
-            else:
+                            body = part.get_payload(
+                                decode=True
+                            ).decode(errors="ignore")
 
-                body = email_msg.get_payload(
-                    decode=True
-                ).decode(errors="ignore")
+                            break
 
-            emails.append({
+                else:
 
-                "id": msg["id"],
-                "sender": sender,
-                "subject": subject,
-                "body": body
+                    body = email_msg.get_payload(
+                        decode=True
+                    ).decode(errors="ignore")
 
-            })
+                emails.append({
 
-        except Exception as e:
+                    "id": msg["id"],
+                    "sender": sender,
+                    "subject": subject,
+                    "body": body
 
-            print("Error reading email:", e)
+                })
 
-    return emails
+            except Exception as e:
+
+                print("Error reading email:", e)
+
+        return emails
+
+    except Exception as e:
+
+        print("Failed to fetch emails:", e)
+        return []
 
 
 # -----------------------------
@@ -168,6 +190,10 @@ def get_new_emails():
 def send_reply(to_email, subject, message):
 
     service = authenticate_gmail()
+
+    if service is None:
+        print("Cannot send reply, Gmail service unavailable.")
+        return
 
     try:
 
