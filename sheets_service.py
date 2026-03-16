@@ -20,18 +20,15 @@ def get_sheet():
     client = gspread.authorize(creds)
     sheet_id = os.getenv("GOOGLE_SHEET_ID")
     if not sheet_id:
-        raise ValueError("GOOGLE_SHEET_ID is not set in your .env file")
+        raise ValueError("GOOGLE_SHEET_ID is not set in environment variables")
     sheet = client.open_by_key(sheet_id).sheet1
     return sheet
 
 
-def save_lead(name, email, request, date):
-
+def save_lead(name, email, request, date, category="general"):
     try:
-
         sheet = get_sheet()
-        sheet.append_row([name, email, request, date])
-        print("Lead saved to Google Sheets")
-
+        sheet.append_row([name, email, request, date, category])
+        print(f"Lead saved to Google Sheets | {email} | {category}")
     except Exception as e:
         print("Error saving lead:", e)

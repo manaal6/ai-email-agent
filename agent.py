@@ -9,9 +9,6 @@ import re
 
 
 def extract_email(sender):
-    """
-    Extract real email from 'Name <email@domain.com>'
-    """
     match = re.search(r"<(.+?)>", sender)
     if match:
         return match.group(1)
@@ -19,29 +16,11 @@ def extract_email(sender):
 
 
 def is_automated_email(sender):
-
     sender = sender.lower()
-
-    if "noreply" in sender:
-        return True
-
-    if "no-reply" in sender:
-        return True
-
-    if "do-not-reply" in sender:
-        return True
-
-    if "mailer-daemon" in sender:
-        return True
-
-    return False
+    return any(x in sender for x in ["noreply", "no-reply", "do-not-reply", "mailer-daemon"])
 
 
 def already_replied(service, message_id):
-    """
-    Check if email thread already has replies
-    """
-
     msg = service.users().messages().get(
         userId="me",
         id=message_id,
@@ -55,18 +34,11 @@ def already_replied(service, message_id):
         id=thread_id
     ).execute()
 
-    messages = thread["messages"]
-
-    # If thread has more than 1 message → skip
-    if len(messages) > 1:
-        return True
-
-    return False
+    return len(thread["messages"]) > 1
 
 
 def main():
 
-   
     print("Checking for new emails...")
 
     emails = get_new_emails()
@@ -81,47 +53,43 @@ def main():
 
         sender_raw = email["sender"]
         sender = extract_email(sender_raw)
-
         subject = email["subject"]
         body = email["body"]
         message_id = email["id"]
 
-        print("Processing email from:", sender)
+        print(f"Processing email from: {sender}")
 
-        # Skip automated emails
         if is_automated_email(sender):
             print("Skipping automated email")
             continue
 
-        # Thread protection
         if already_replied(service, message_id):
             print("Skipping email (already replied in thread)")
             continue
 
         try:
 
-            # Generate AI reply
-            reply = generate_reply(body)
-
-            print("AI reply generated")
+            # Generate AI reply + category
+            reply, category = generate_reply(body)
+            print(f"AI reply generated | Category: {category}")
 
             # Send reply
             send_reply(sender, subject, reply)
+            print(f"Reply sent to: {sender}")
 
-            print("Reply sent successfully")
-
-            # Save lead (extract name from email body via AI)
+            # Extract sender name
             sender_name = extract_sender_name(body, sender_raw)
+
+            # Save lead with category
             save_lead(
                 sender_name,
                 sender,
                 body,
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                category
             )
 
-            print("Lead saved to Google Sheets")
-
-            # Mark email as read
+            # Mark as read
             service.users().messages().modify(
                 userId="me",
                 id=message_id,
@@ -131,16 +99,12 @@ def main():
             print("Email marked as read")
 
         except Exception as e:
-
-            print("Error processing email:", e)
+            print(f"Error processing email: {e}")
 
 
 if __name__ == "__main__":
 
     while True:
-
         main()
-
         print("Waiting 60 seconds before checking again...")
-
         time.sleep(60)
