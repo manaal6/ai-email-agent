@@ -141,6 +141,50 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     display: flex; justify-content: space-between; align-items: center;
 }
 .footer-text { font-size: 11px; color: #b0b8cc; font-family: 'DM Mono', monospace; }
+
+/* ── MOBILE RESPONSIVE ── */
+@media (max-width: 768px) {
+
+    .block-container { padding: 0 1rem 2rem; }
+
+    /* Hero — stack vertically */
+    .hero {
+        flex-direction: column; align-items: flex-start;
+        gap: 14px; padding: 1.4rem 1.2rem 1.2rem;
+        margin: 0 -1rem 1.5rem;
+    }
+    .hero-title { font-size: 18px; }
+    .hero-badge { align-self: flex-start; }
+
+    /* Metrics — 2 columns on mobile */
+    .metric-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    .mcard { padding: 1rem 1rem; }
+    .mcard-label {
+        font-size: 10px;
+        white-space: normal;
+        word-break: break-word;
+        writing-mode: horizontal-tb !important;
+        text-orientation: mixed !important;
+    }
+    .mcard-value { font-size: 26px; }
+    .mcard-hint { font-size: 10px; }
+
+    /* Leads table — hide Date column, shrink email */
+    .ltable thead th:last-child,
+    .ltable tbody td:last-child { display: none; }
+    .ltable td { padding: 8px 8px; font-size: 12px; }
+    .ltable .t-email { font-size: 10px; }
+    .t-badge { font-size: 10px; padding: 2px 7px; }
+
+    /* Status grid — 1 column */
+    .status-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    /* Footer — stack */
+    .dash-footer { flex-direction: column; gap: 4px; text-align: center; }
+}
 </style>
 """, unsafe_allow_html=True)
 
