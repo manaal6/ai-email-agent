@@ -430,39 +430,59 @@ with col_chart:
 # -----------------------------------------------
 st.markdown('<div class="sec-head"><span>🤖</span> Recent AI Responses</div>', unsafe_allow_html=True)
 
-ai_examples = [
-    {
-        "customer": "Hi, I'd like to know your pricing. What plans do you offer?",
-        "reply": "Thank you for reaching out! We offer flexible plans starting from $99/month, tailored to your business size and needs. I'd love to walk you through the options — would you be available for a quick 15-minute call this week?"
-    },
-    {
-        "customer": "I need to book an appointment with your team for a consultation.",
-        "reply": "Great, we'd love to connect! Our team is available Monday–Friday, 9am–5pm. Please reply with your preferred date and time, and we'll confirm your slot within the hour."
-    },
-    {
-        "customer": "I'm having an issue with my account — it won't let me log in.",
-        "reply": "We're sorry to hear that! Please try resetting your password via the login page. If the issue persists, reply with your registered email and we'll resolve it for you within 24 hours."
-    }
-]
-
-# Replace with real emails if available
 import html as html_lib
 import re as _re
 
 def strip_html(text):
-    """Remove HTML tags and decode entities from email body."""
-    text = _re.sub(r'<[^>]+>', ' ', text)        # remove tags
-    text = _re.sub(r'\s+', ' ', text).strip()     # collapse whitespace
+    text = _re.sub(r'<[^>]+>', ' ', text)
+    text = _re.sub(r'\s+', ' ', text).strip()
     return text
 
+def is_automated(msg):
+    keywords = ["monitor is down", "monitor is up", "uptime", "noreply",
+                "no-reply", "do-not-reply", "mailer-daemon", "unsubscribe",
+                "alert@", "notification"]
+    return any(k in msg.lower() for k in keywords)
+
+# Category → matching reply templates
+reply_templates = {
+    "pricing":     "Thank you for reaching out! We offer flexible plans tailored to your needs. Reply and we'll send you a custom quote within 24 hours.",
+    "appointment": "We'd love to connect! Please reply with your preferred date and time and we'll confirm your slot within the hour.",
+    "support":     "We've received your message. Our support team will get back to you within 24 hours. Reply with URGENT if this is time-sensitive.",
+    "complaint":   "We sincerely apologize for the inconvenience. A senior team member will personally review your case and respond within 12 hours.",
+    "general":     "Thank you for reaching out! We've received your message and will get back to you within 24 hours.",
+}
+
+# Build real examples from sheet, skipping automated emails
+real_examples = []
 if not df.empty:
-    for i, (_, row) in enumerate(df.head(2).iterrows()):
+    for _, row in df.iterrows():
         msg = strip_html(str(row["Message"]))
-        if len(msg) > 20:
-            ai_examples[i]["customer"] = msg[:200]
+        if len(msg) > 20 and not is_automated(msg):
+            cat = str(row.get("Category", "general")).strip().lower()
+            if cat not in reply_templates:
+                cat = "general"
+            real_examples.append({
+                "customer": msg,
+                "reply": reply_templates[cat]
+            })
+        if len(real_examples) == 3:
+            break
+
+# Fill remaining slots with static examples
+static_fallbacks = [
+    {"customer": "Hi, I'd like to know your pricing. What plans do you offer?",
+     "reply": reply_templates["pricing"]},
+    {"customer": "I need to book an appointment with your team for a consultation.",
+     "reply": reply_templates["appointment"]},
+    {"customer": "I'm having an issue with my account — it won't let me log in.",
+     "reply": reply_templates["support"]},
+]
+while len(real_examples) < 3:
+    real_examples.append(static_fallbacks[len(real_examples)])
 
 ai_col1, ai_col2, ai_col3 = st.columns(3, gap="medium")
-for col, ex in zip([ai_col1, ai_col2, ai_col3], ai_examples):
+for col, ex in zip([ai_col1, ai_col2, ai_col3], real_examples):
     with col:
         customer_text = html_lib.escape(ex['customer'][:120])
         reply_text    = html_lib.escape(ex['reply'])
