@@ -447,10 +447,17 @@ ai_examples = [
 
 # Replace with real emails if available
 import html as html_lib
+import re as _re
+
+def strip_html(text):
+    """Remove HTML tags and decode entities from email body."""
+    text = _re.sub(r'<[^>]+>', ' ', text)        # remove tags
+    text = _re.sub(r'\s+', ' ', text).strip()     # collapse whitespace
+    return text
 
 if not df.empty:
     for i, (_, row) in enumerate(df.head(2).iterrows()):
-        msg = str(row["Message"])
+        msg = strip_html(str(row["Message"]))
         if len(msg) > 20:
             ai_examples[i]["customer"] = msg[:200]
 
