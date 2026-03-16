@@ -4,3 +4,7 @@ google-auth-httplib2
 google-auth-oauthlib
 gspread==5.12.4
 python-dotenv
+streamlit
+pandas
+plotly
+requests
