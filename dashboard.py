@@ -446,6 +446,8 @@ ai_examples = [
 ]
 
 # Replace with real emails if available
+import html as html_lib
+
 if not df.empty:
     for i, (_, row) in enumerate(df.head(2).iterrows()):
         msg = str(row["Message"])
@@ -455,15 +457,18 @@ if not df.empty:
 ai_col1, ai_col2, ai_col3 = st.columns(3, gap="medium")
 for col, ex in zip([ai_col1, ai_col2, ai_col3], ai_examples):
     with col:
+        customer_text = html_lib.escape(ex['customer'][:120])
+        reply_text    = html_lib.escape(ex['reply'])
+        ellipsis      = '...' if len(ex['customer']) > 120 else ''
         st.markdown(f"""
         <div class="ai-box">
             <div class="ai-box-customer">
                 <div class="ai-box-label c">Customer Email</div>
-                {ex['customer'][:120]}{'...' if len(ex['customer']) > 120 else ''}
+                {customer_text}{ellipsis}
             </div>
             <div class="ai-box-reply">
                 <div class="ai-box-label a">AI Reply</div>
-                {ex['reply']}
+                {reply_text}
             </div>
         </div>
         """, unsafe_allow_html=True)
