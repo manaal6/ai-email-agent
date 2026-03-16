@@ -4,8 +4,10 @@ from sheets_service import save_lead
 
 import time
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import re
+
+PKT = timezone(timedelta(hours=5))  # Pakistan Standard Time
 
 
 def extract_email(sender):
@@ -85,7 +87,7 @@ def main():
                 sender_name,
                 sender,
                 body,
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                datetime.now(PKT).strftime("%Y-%m-%d %H:%M:%S"),
                 category
             )
 
