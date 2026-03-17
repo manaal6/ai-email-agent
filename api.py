@@ -1,10 +1,15 @@
 from flask import Flask, request, jsonify
 from ai_processor import generate_reply, extract_sender_name
 from sheets_service import save_lead
+from gmail_service import create_token_file, create_credentials_file
 from datetime import datetime, timezone, timedelta
 import os
 
 PKT = timezone(timedelta(hours=5))
+
+# Write token.json and credentials.json from env variables at startup
+create_credentials_file()
+create_token_file()
 
 app = Flask(__name__)
 
@@ -40,7 +45,7 @@ def process_email():
         return jsonify({"error": "email_body and sender_email are required"}), 400
 
     try:
-        # generate_reply now returns (reply, category)
+        # generate_reply returns (reply, category)
         reply, category = generate_reply(email_body)
 
         # Extract sender name
